@@ -1,4 +1,21 @@
 import Papa, { ParseResult, ParseMeta, ParseError } from 'papaparse';
+import axios from 'axios';
+
+axios.get('http://exemplo.com', { timeout: 30000 }) // Aumenta o timeout para 30 segundos
+  .then(response => console.log(response.data))
+  .catch(error => console.error(error));
+
+const data_taxonomia_ebird = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird');
+const data_taxonomia_local =await getJson('https://api.ebird.org/v2/ref/region/list/country/world');
+
+const unique_locates = await getUniqueJson(data_taxonomia_local, 'code');
+
+const data_global = async (): Promise<object[]> =>
+    (await Promise.all(unique_locates.map(item => getJsonFromCode(item)))).flat();
+
+function getJsonFromCode(code: string) {
+    return getJson(`https://api.ebird.org/v2/data/obs/${code}/recent`);
+    }
 
 export async function getUnique(data : ParseResult<unknown>, key : string) {
 
@@ -6,10 +23,16 @@ export async function getUnique(data : ParseResult<unknown>, key : string) {
 
 }
 
+export function getUniqueJson<T extends Record<string, any>>(data: T[], key: keyof T): any[] {
+    return [...new Set(data.map(item => item[key]))];
+  }
+
 export async function getKeys(data : ParseResult<unknown>) {
     const keys = data.meta.fields ?? []; // Adicionando verificação para keys
     return keys;
 }
+
+export const keys_ebird = await getKeys(data_taxonomia_ebird);
 
 export async function getJson(url: string) {
     const res = await fetch(url, {

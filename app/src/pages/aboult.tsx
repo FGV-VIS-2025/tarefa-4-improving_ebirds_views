@@ -8,14 +8,13 @@ import Papa from 'papaparse';
 
 export async function getStaticProps() {
 
-    const data1 = await getJson('https://api.ebird.org/v2/data/obs/KZ/recent');
-    const data2 = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird');
+    const data1 = await getJson('https://api.ebird.org/v2/data/obs/AL/recent');
+    const data2 = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird?Accept-Language=en');
     const keys2 = await getKeys(data2);
-    const data3 = await getJson('https://api.ebird.org/v2/ref/taxa-locales/ebird');
+    const data3 = await getJson('https://api.ebird.org/v2/ref/region/list/country/world');
     
     // Extract the unique values
     const uniqueData = await getUnique(data2, keys2[0]);
-    console.log(uniqueData);
     return {
       props: {
         dados1: data1,
