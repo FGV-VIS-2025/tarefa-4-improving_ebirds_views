@@ -6,9 +6,16 @@ type Props = {
   width?: number;
   height?: number;
   geoData: FeatureCollection<Geometry>;
+  points?: Points[]; // Adicionando a propriedade points
 };
 
-const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData }) => {
+type Points = {
+  lat: number;
+  lon: number;
+  value: number;
+};
+
+const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [] }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -29,7 +36,18 @@ const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData }) => {
       .attr('d', pathGenerator as any)
       .attr('fill', '#4dabf7')
       .attr('stroke', '#fff');
-  }, [geoData, width, height]);
+
+    svg
+      .selectAll('circle')
+      .data(points) // Aqui você pode usar os dados de pontos se necessário
+      .enter()
+      .append('circle')
+      .attr('cx', (d) => projection([d.lon, d.lat])![0])
+      .attr('cy', (d) => projection([d.lon, d.lat])![1])
+      .attr('r', (d) => Math.sqrt(d.value) * 2) // Ajuste o tamanho do círculo conforme necessário
+      .attr('fill', 'red')
+      .attr('opacity', 0.1); // Ajuste a opacidade conforme necessário
+      }, [geoData, width, height]);
 
   return <svg ref={svgRef} width={width} height={height} />;
 };
