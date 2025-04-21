@@ -2,22 +2,25 @@ import Papa, { ParseResult, ParseMeta, ParseError } from 'papaparse';
 import axios from 'axios';
 import {ReportBirds} from '@/lib/Components';
 
-axios.get('http://exemplo.com', { timeout: 40000 }) // Aumenta o timeout para 30 segundos
+axios.get('http://exemplo.com', { timeout: 100000 }) // Aumenta o timeout para 30 segundos
   .then(response => console.log(response.data))
   .catch(error => console.error(error));
 
 const data_taxonomia_ebird = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird');
 const data_taxonomia_local =await getJson('https://api.ebird.org/v2/ref/region/list/country/world');
 
+export const data_categorias_ebirds = await getUnique(data_taxonomia_ebird, 'COMMON_NAME');
+
 
 
 export const data_global = async (): Promise<ReportBirds[]> => {
     const unique_locates = getUniqueJson(data_taxonomia_local, 'code');
-    return (await Promise.all(unique_locates.map(item => getJsonFromCode(item)))).flat();
+    return (await Promise.all(unique_locates.map(item => 
+      getJsonFromCode(item)))).flat();
   };
 
-function getJsonFromCode(code: string) {
-    return getJson(`https://api.ebird.org/v2/data/obs/${code}/recent`);
+export function getJsonFromCode(codeRegion: string) {
+    return getJson(`https://api.ebird.org/v2/data/obs/${codeRegion}/recent?back=5&cat=species&maxResults=1`);
     };
 
 export async function getUnique(data : ParseResult<unknown>, key : string) {
