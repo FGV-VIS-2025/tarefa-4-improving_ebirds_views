@@ -7,6 +7,7 @@ type Props = {
   height?: number;
   geoData: FeatureCollection<Geometry>;
   points?: Points[]; // Adicionando a propriedade points
+  onBrushSelection?: (selection: [[number, number], [number, number]]) => void;
 };
 
 type Points = {
@@ -16,7 +17,7 @@ type Points = {
   species: string;
 };
 
-const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [] }) => {
+const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [], onBrushSelection }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -28,7 +29,8 @@ const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points 
 
     const g = svg.append("g");
 
-    const projection = d3.geoMercator().fitSize([width, height], geoData);
+    const projection = d3.geoMercator().fitSize([width, height], geoData) as d3.GeoProjection;
+     // Verifica se a projeção foi criada corretamente
     const pathGenerator = d3.geoPath().projection(projection);
 
     
@@ -86,6 +88,18 @@ const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points 
             zoom.transform,
             d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
           );
+        }
+
+        if (typeof projection.invert !== "function") {
+          console.warn("Projection does not support invert.");
+          return;
+        }
+
+        const lonLat0 = projection?.invert([adjustedX0, adjustedY0]);
+        const lonLat1 = projection?.invert([adjustedX1, adjustedY1]);
+
+        if (lonLat0 && lonLat1 && onBrushSelection) {
+          onBrushSelection([lonLat0, lonLat1]);
         }
 
         svg.select<SVGGElement>(".brush").remove(); // Remove o brush após o zoom

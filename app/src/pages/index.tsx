@@ -69,6 +69,10 @@ export default function Home({points_birds}: any) {
     // Aqui você carrega os dados do GeoJSON e os armazena em geoData
     setGeoData(worldGeoJson);
   }, []);
+    const handleBrush = ([[x0, y0], [x1, y1]]: [[number, number], [number, number]]) => {
+      console.log("Área selecionada no sistema original (ajustada):", x0, y0, x1, y1);
+      // Aqui você pode filtrar, atualizar estado, converter pra lat/lon etc.
+    };
   return (
     
     <div >
@@ -77,7 +81,8 @@ export default function Home({points_birds}: any) {
       <div className="grid grid-cols-[70%_30%] w-full h-screen">
         <div className="bg-white-100 p-4">
           <WorldMap geoData={geoData} 
-          points={filteredOptions} />
+          points={filteredOptions} 
+          onBrushSelection={handleBrush}/>
         </div>
         <div className="bg-yellow-100 p-4">
           <MultiSelect
