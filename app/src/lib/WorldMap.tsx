@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { FeatureCollection, Geometry } from 'geojson';
+import {ReportBirds} from '@/lib/Components';
 
 type Props = {
   width?: number;
   height?: number;
   geoData: FeatureCollection<Geometry>;
-  points?: Points[]; // Adicionando a propriedade points
+  points?: ReportBirds[]; // Adicionando a propriedade points
   onBrushSelection?: (selection: [[number, number], [number, number]]) => void;
 };
 
@@ -25,7 +26,8 @@ const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points 
     if (!geoData) return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove(); // Limpa antes de desenhar
+    svg.selectAll("path").remove();
+    svg.selectAll("circle").remove(); // Limpa antes de desenhar
 
     const g = svg.append("g");
 
@@ -46,9 +48,9 @@ const WorldMap: React.FC<Props> = ({ width = 800, height = 450, geoData, points 
       .data(points) // Aqui você pode usar os dados de pontos se necessário
       .enter()
       .append('circle')
-      .attr('cx', (d) => projection([d.lon, d.lat])![0])
-      .attr('cy', (d) => projection([d.lon, d.lat])![1])
-      .attr('r', (d) => Math.sqrt(d.value) * 2) // Ajuste o tamanho do círculo conforme necessário
+      .attr('cx', (d) => projection([d.lng, d.lat])![0])
+      .attr('cy', (d) => projection([d.lng, d.lat])![1])
+      .attr('r', (d) => Math.sqrt(d.howMany) * 2) // Ajuste o tamanho do círculo conforme necessário
       .attr('fill', 'red')
       .attr('opacity', 0.1); // Ajuste a opacidade conforme necessário
       

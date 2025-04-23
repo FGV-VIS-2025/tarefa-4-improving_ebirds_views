@@ -2,65 +2,40 @@ import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from '@/lib/Navbar';
 import { MultiSelect } from "@/lib/MultiSelect";
-import React, { useState , useEffect} from 'react';
+import React, { useState , useEffect, useCallback, useMemo} from 'react';
 import {keys_ebird, 
   data_global, 
   data_categorias_ebirds} from '@/lib/getFromApi';
 import WorldMap from '@/lib/WorldMap';
+import BarChart from "@/lib/BarChar";
 import worldGeoJson from '@/lib/world.json';
+import { ReportBirds } from "@/lib/Components";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const birdsOptions = [
-  "Alaudidae", "Albatross", "Anatidae", "Apodidae", "Ardeidae",
-  "Balaenicipitidae", "Bucerotidae", "Cacatuidae", "Caprimulgidae",
-  "Ciconiidae", "Coraciidae", "Corvidae", "Cuculidae", "Falconidae",
-  "Fringillidae", "Furnariidae", "Galliformes", "Gaviidae",
-  "Hirundinidae", "Laridae", "Muscicapidae", "Nectariniidae",
-  "Pelecanidae", "Phasianidae", "Picidae", "Podicipedidae",
-  "Procellariidae", "Psittacidae", "Rallidae", "Scolopacidae",
-  "Strigiformes", "Threskiornithidae"
-];
 
 export async function getStaticProps() {
   const global_data = await data_global();
-  const points_birds = global_data
-  .filter(item => item.lat !== undefined && item.lng !== undefined)
-  .map(item => ({
-    lat: item.lat,
-    lon: item.lng,
-    value: item.howMany ?? 0,
-    species: item.comName,
-  }));
-
-  
-  
+   
   return {
     props: {
-      points_birds,
+      global_data,
     },
 };}
 
 
 
 
-export default function Home({points_birds}: any) {
+export default function Home({global_data}: any) {
 
   const [selected, setSelected] = useState<string[]>([]);
+  const [selectedPoints, setSelectedPoints] = useState<ReportBirds[]>([]);
 
   const [geoData, setGeoData] = useState<any>(null);
 
-  const filteredOptions = points_birds.filter((option:any) => 
-    selected.includes(option.species)
-  );
+  const filteredOptions = useMemo(() => {
+    return global_data.filter((option:any) => 
+    selected.includes(option.comName) 
+    );
+  }, [selected, global_data]);
   console.log("filteredOptions", filteredOptions);
 
   
@@ -68,11 +43,29 @@ export default function Home({points_birds}: any) {
   useEffect(() => {
     // Aqui você carrega os dados do GeoJSON e os armazena em geoData
     setGeoData(worldGeoJson);
-  }, []);
-    const handleBrush = ([[x0, y0], [x1, y1]]: [[number, number], [number, number]]) => {
-      console.log("Área selecionada no sistema original (ajustada):", x0, y0, x1, y1);
-      // Aqui você pode filtrar, atualizar estado, converter pra lat/lon etc.
-    };
+    if (selectedPoints.length > 0) {
+      console.log("Usando dados filtrados fora do handleBrush:", selectedPoints);
+      
+      // Aqui você pode, por exemplo:
+      // - atualizar uma tabela
+      // - fazer uma chamada de API
+      // - renderizar uma lista
+    }
+  }, [selectedPoints]);
+    const handleBrush = useCallback(([[lon0, lat0], [lon1, lat1]]: [[number, number], [number, number]]) => {
+      const [minLon, maxLon] = [Math.min(lon0, lon1), Math.max(lon0, lon1)];
+      const [minLat, maxLat] = [Math.min(lat0, lat1), Math.max(lat0, lat1)];
+    
+      const filtered = filteredOptions.filter((d: any) => {
+        const [lon, lat] = [d.lng, d.lat];
+        return lon >= minLon && lon <= maxLon && lat >= minLat && lat <= maxLat;
+      });
+      //console.log("Pontos filtrados:", filtered);
+      setSelectedPoints(filtered);
+    }, [filteredOptions]);
+
+    console.log("geoData", selectedPoints);
+    
   return (
     
     <div >
@@ -92,6 +85,13 @@ export default function Home({points_birds}: any) {
             label="Select options"
           />
         </div>
+      </div>
+      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
+        <BarChart
+          data={filteredOptions.map((d: any) => ({
+            label: d.locName,
+            value: d.howMany,
+          }))} />
       </div>
       
 
