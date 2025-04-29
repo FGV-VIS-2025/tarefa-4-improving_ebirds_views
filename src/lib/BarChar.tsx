@@ -1,13 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import { ReportBirds } from './Components';
 import * as d3 from 'd3';
 
-type Data = {
-  label: string;
-  value: number;
-};
-
 type Props = {
-  data: Data[];
+  data: ReportBirds[];
   width?: number;
   height?: number;
 };
@@ -15,25 +11,30 @@ type Props = {
 const BarChart: React.FC<Props> = ({ data, width = 600, height = 400 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
+
+  const colorScale = d3.scaleOrdinal<string, string>()
+    .domain(Array.from(new Set(data.map((d) => d.locName)))) // Todas espécies únicas
+    .range(d3.schemeCategory10); // Cores para as espécies
+
   useEffect(() => {
     if (!data || data.length === 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // limpa o SVG
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+    const margin = { top: 20, right: 30, bottom: 40, left: 100 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    const x = d3.scaleBand()
-      .domain(data.map(d => d.label))
+    const x = d3.scaleLinear()
+      .domain([0, d3.max(data, d => d.howMany)!])
+      .nice()
+      .range([0, innerWidth]);
+      
+    const y = d3.scaleBand()
+      .domain(data.map(d => d.locName))
       .range([0, innerWidth])
       .padding(0.1);
-
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.value)!])
-      .nice()
-      .range([innerHeight, 0]);
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -49,11 +50,11 @@ const BarChart: React.FC<Props> = ({ data, width = 600, height = 400 }) => {
       .data(data)
       .enter()
       .append('rect')
-      .attr('x', d => x(d.label)!)
-      .attr('y', d => y(d.value))
-      .attr('width', x.bandwidth())
-      .attr('height', d => innerHeight - y(d.value))
-      .attr('fill', '#4dabf7');
+      .attr('x', 0)
+      .attr('y', d => y(d.locName)!)
+      .attr('height', y.bandwidth())
+      .attr('width', d => x(d.howMany)!)
+      .attr('fill',  (d) => colorScale(d.comName)) // Cor da barra;
 
   }, [data, width, height]);
 

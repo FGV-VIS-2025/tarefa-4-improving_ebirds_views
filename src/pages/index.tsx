@@ -95,6 +95,41 @@ export default function Home({global_data}: any) {
     
     <div >
       <Navbar />
+
+      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
+        <MultiSelect
+            options={data_categorias_ebirds}
+            selected={selected}
+            onChange={setSelected}
+            label="Select options"
+        />
+      </div>
+        
+      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
+        {selected.length > 0 ? (
+          <div className="p-4">
+            <h2 className="text-lg font-bold mb-2">Selecionados:</h2>
+            <ul className="list-none p-0">
+              {selected.map((item) => (
+                <li key={item} className="mb-2 flex items-center">
+                  {/* <span>{item}</span> */}
+                  <button
+                    onClick={() => {
+                      const updated = selected.filter(sel => sel !== item);
+                      setSelected(updated);
+                    }}
+                    className="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="p-4">Nenhum selecionado</p>
+        )}
+      </div>
       
       <div className="grid grid-cols-[70%_30%] w-full h-screen">
         <div className="bg-white-100 p-4">
@@ -103,24 +138,14 @@ export default function Home({global_data}: any) {
           onBrushSelection={handleBrush}/>
         </div>
         <div className="bg-yellow-100 p-4">
-          <MultiSelect
-            options={data_categorias_ebirds}
-            selected={selected}
-            onChange={setSelected}
-            label="Select options"
-          />
+          <BarChart
+          data={filteredOptions} />
         </div>
       </div>
-      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
-        <BarChart
-          data={filteredOptions.map((d: any) => ({
-            label: d.locName,
-            value: d.howMany,
-          }))} />
-      </div>
+      
       
 
-      <p>{selected.join(', ') || 'Nenhum selecionado'}</p>
+      {/* <p>{selected.join(', ') || 'Nenhum selecionado'}</p> */}
     </div>
   );
 }

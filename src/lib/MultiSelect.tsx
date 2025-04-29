@@ -31,21 +31,23 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
         />
   
         {/* Lista de opções filtradas */}
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {filteredOptions.map(option => (
-            <li key={option}>
-              <label>
-                <input
-                  type="checkbox"
-                  value={option}
-                  checked={selected.includes(option)}  // Verifica se está marcado
-                  onChange={() => handleToggle(option)}  // Atualiza o estado
-                />
-                {' '}{option}
-              </label>
-            </li>
-          ))}
-        </ul>
+        {searchQuery.trim() !== '' && (
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {filteredOptions.map(option => (
+              <li key={option}>
+                <label>
+                  <input
+                    type="checkbox"
+                    value={option}
+                    checked={selected.includes(option)}  // Verifica se está marcado
+                    onChange={() => handleToggle(option)}  // Atualiza o estado
+                  />
+                  {' '}{option}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   };

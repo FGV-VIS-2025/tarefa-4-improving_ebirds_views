@@ -24,6 +24,10 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
   const [isMounted, setIsMounted] = React.useState(false);
   const [brushEnabled, setBrushEnabled] = React.useState(false);
 
+  const colorScale = d3.scaleOrdinal<string, string>()
+  .domain(Array.from(new Set(points.map((d) => d.comName)))) // Todas espécies únicas
+  .range(d3.schemeCategory10); // Cores para as espécies
+
   useEffect(() => {
     
     setIsMounted(true);
@@ -113,7 +117,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
           enter => enter.append('path')
             .attr('class', 'country')
             .attr('d', pathGenerator)
-            .attr('fill', '#efa400')
+            .attr('fill', '#ffddcc')
             .attr('stroke', '#fff'),
           update => update
             .attr('d', pathGenerator),
@@ -136,10 +140,12 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
             .attr('r', (d) => Math.sqrt(d.howMany) * 2)
             .attr('fill', 'red')
             .attr('opacity', 0.5)
+            .attr('fill', (d) => colorScale(d.comName))
             .on("mouseover", (event, d) => {
               tooltip
                 .html(`<strong>Espécie:</strong> ${d.comName}<br/><strong>Quantidade:</strong> ${d.howMany}`)
-                .style("opacity", 1);
+                .style("opacity", 1)
+                .style("visibility", "visible");
             })
             .on("mousemove", (event) => {
               tooltip
@@ -226,7 +232,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       .append('path')
       .attr('class', 'country')
       .attr('d', pathGenerator)
-      .attr('fill', '#efa400')
+      .attr('fill', '#ffddcc')
       .attr('stroke', '#fff');
       
     const brush = d3.brush()
