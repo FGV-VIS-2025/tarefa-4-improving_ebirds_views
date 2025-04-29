@@ -14,13 +14,23 @@ import { ReportBirds } from "@/lib/Components";
 
 
 export async function getStaticProps() {
-  const global_data = await data_global();
+  try {
+    // Fetch the data from the API
+      const global_data = await data_global();
+      if (!global_data) {
+        throw new Error("Failed to fetch data from the API");
+      };
+      return {
+        props: {global_data}
+      };
+  } catch (error) {
+        console.error("Error fetching data:", error);
+        return {
+          props: { global_data: [] }, // Return an empty array or handle the error as needed
+        };
+    };
+}
    
-  return {
-    props: {
-      global_data,
-    },
-};}
 
 
 
