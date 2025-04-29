@@ -2,7 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  reactStrictMode: true,
+  output: 'export',
+  distDir: 'out',
+  basePath: '/tarefa-4-improving_ebirds_views',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
