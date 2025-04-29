@@ -8,6 +8,7 @@ import Papa from 'papaparse';
 
 export async function getStaticProps() {
 
+  try {
     const data1 = await getJson('https://api.ebird.org/v2/data/obs/AL/historic/2021/1/1');
     const data2 = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird?Accept-Language=en');
     const keys2 = await getKeys(data2);
@@ -15,6 +16,11 @@ export async function getStaticProps() {
     
     // Extract the unique values
     const uniqueData = await getUnique(data2, keys2[0]);
+
+    if (!data1 || !data2 || !data3) {
+      throw new Error("Failed to fetch data from the API");
+    } 
+
     return {
       props: {
         dados1: data1,
@@ -22,7 +28,13 @@ export async function getStaticProps() {
         dados3: data3,
       },
     };
-  }
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    return {
+      props: { dados1: [], dados2: [], dados3: [] }, // Return an empty array or handle the error as needed
+    };
+  };
+}
 
   type Props = {
     dados1: any;
