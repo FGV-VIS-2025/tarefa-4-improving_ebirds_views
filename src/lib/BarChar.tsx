@@ -6,15 +6,14 @@ type Props = {
   data: ReportBirds[];
   width?: number;
   height?: number;
+  color?: d3.ScaleOrdinal<string, string>;
 };
 
-const BarChart: React.FC<Props> = ({ data, width = 600, height = 400 }) => {
+const BarChart: React.FC<Props> = ({ data, width = 600, height = 400, color }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
 
-  const colorScale = d3.scaleOrdinal<string, string>()
-    .domain(Array.from(new Set(data.map((d) => d.locName)))) // Todas espécies únicas
-    .range(d3.schemeCategory10); // Cores para as espécies
+  const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
 
   useEffect(() => {
     if (!data || data.length === 0) return;

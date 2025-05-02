@@ -20,3 +20,14 @@ export type ReportBirds = {
   locationPrivate: boolean,
   subId: string
 };
+
+export type BirdData = {
+    comName: string;
+    locName: string;
+    howMany: number;
+    lat: number;
+    lng: number;
+    // dateStart: Date;
+    // dateEnd: Date;
+    seasonName: string;
+  };

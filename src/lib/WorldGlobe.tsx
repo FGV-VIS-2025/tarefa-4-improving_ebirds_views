@@ -9,6 +9,7 @@ type Props = {
   geoData: FeatureCollection<Geometry>;
   points?: ReportBirds[]; // Adicionando a propriedade points
   onBrushSelection?: (selection: [[number, number], [number, number]]) => void;
+  color?: d3.ScaleOrdinal<string, string>;
 };
 
 type Points = {
@@ -18,21 +19,68 @@ type Points = {
   species: string;
 };
 
-const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [], onBrushSelection }) => {
+const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [], onBrushSelection, color }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [flattened, setFlattened] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
   const [brushEnabled, setBrushEnabled] = React.useState(false);
 
-  const colorScale = d3.scaleOrdinal<string, string>()
-  .domain(Array.from(new Set(points.map((d) => d.comName)))) // Todas espécies únicas
-  .range(d3.schemeCategory10); // Cores para as espécies
+  const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
+
+  // create consts null for use in useEffect
+  const projectionRef = useRef<d3.GeoProjection | null>(null);
+  const pathGeneratorRef = useRef<d3.GeoPath | null>(null);
+  const updateMapRef = useRef<() => void>(() => {});
+  const brushRef = useRef<d3.BrushBehavior<unknown> | null>(null);
+  const isDraggingRef = useRef(false);
+  const lastPosRef = useRef<[number, number] | null>(null);
+
+  const zoomHandler = (event: WheelEvent) => {
+    event.preventDefault();
+    if (!projectionRef.current) return;
+  
+    const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;
+    const scale = projectionRef.current.scale();
+    projectionRef.current.scale(scale * scaleFactor);
+    updateMapRef.current?.();
+  };
+  
+  const mouseDownHandler = (event: MouseEvent) => {
+    isDraggingRef.current = true;
+    lastPosRef.current = [event.clientX, event.clientY];
+    event.preventDefault();
+  };
+  
+  const mouseMoveHandler = (event: MouseEvent) => {
+    if (!isDraggingRef.current || !lastPosRef.current || !projectionRef.current) return;
+  
+    const [lastX, lastY] = lastPosRef.current;
+    const dx = event.clientX - lastX;
+    const dy = event.clientY - lastY;
+  
+    const rotate = projectionRef.current.rotate();
+    const sensitivity = 0.25;
+  
+    projectionRef.current.rotate([
+      rotate[0] + dx * sensitivity,
+      rotate[1] - dy * sensitivity,
+      rotate[2]
+    ]);
+  
+    lastPosRef.current = [event.clientX, event.clientY];
+    updateMapRef.current?.();
+  };
 
   useEffect(() => {
     
     setIsMounted(true);
 
+    // create svg element
     const svg = d3.select(svgRef.current);
+
+    svg.on("wheel", zoomHandler);
+    svg.on("mousedown", mouseDownHandler);
+    svg.on("mousemove", mouseMoveHandler);
     svg.selectAll("path").remove();
     svg.selectAll("circle").remove(); // Limpa antes de desenhar
 
@@ -48,7 +96,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
     
     //.clipAngle(90); // mostra só metade visível
      // Verifica se a projeção foi criada corretamente
-     const projection = flattened 
+    projectionRef.current = flattened 
      ? d3.geoEquirectangular()
          .scale(Math.min(width, height) / 2.2)
          .translate([width / 2, height / 2])
@@ -57,7 +105,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
          .translate([width / 2, height / 2]);
        if (!geoData) return;
 
-    const pathGenerator = d3.geoPath().projection(projection);
+    pathGeneratorRef.current = d3.geoPath().projection(projectionRef.current!);
   
     const defs = svg.append('defs');
 
@@ -65,7 +113,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       .attr('id', 'globeClip')
       .append('path')
       .datum({ type: 'Sphere' } as any)
-      .attr('d', pathGenerator);
+      .attr('d', pathGeneratorRef.current!);
 
     const g = svg.append("g");
 
@@ -74,15 +122,15 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
     let isDragging = false;
     let lastPos: [number, number] | null = null;
 
-    const zoomHandler = (event: WheelEvent) => {
-      event.preventDefault();
+    // const zoomHandler = (event: WheelEvent) => {
+    //   event.preventDefault();
       
-      const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9; // Aumenta ou diminui conforme o scroll
-      const scale = projection.scale();
-      projection.scale(scale * scaleFactor); // Aplica o zoom na projeção
+    //   const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9; // Aumenta ou diminui conforme o scroll
+    //   const scale = projectionRef.current!.scale();
+    //   projectionRef.current!.scale(scale * scaleFactor); // Aplica o zoom na projeção
       
-      updateMap(); // Atualiza a visualização após o zoom
-    };
+    //   updateMapRef.current(); // Atualiza a visualização após o zoom
+    // };
 
     const dragHandler = (event: MouseEvent) => {
       if (!isDragging || !lastPos) return;
@@ -91,11 +139,11 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       const dx = event.clientX - lastX;
       const dy = event.clientY - lastY;
       
-      const rotate = projection.rotate();
+      const rotate = projectionRef.current!.rotate();
       const sensitivity = 0.25; // Sensibilidade do movimento
       
       // Aplica a rotação
-      projection.rotate([
+      projectionRef.current!.rotate([
         rotate[0] + dx * sensitivity,
         rotate[1] - dy * sensitivity,
         rotate[2]
@@ -103,12 +151,21 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       
       lastPos = [event.clientX, event.clientY];
       
-      updateMap(); // Atualiza o mapa, incluindo a rotação
+      updateMapRef.current(); // Atualiza o mapa, incluindo a rotação
     };
     
 
-    const updateMap = () => {
-      ocean.attr('d', pathGenerator({ type: "Sphere" }));
+    updateMapRef.current = () => {
+      
+
+      const [lon_ajust, lat_ajust] = projectionRef.current!.rotate(); 
+      const center: [number, number] = [-lon_ajust, -lat_ajust];
+
+      const visiblePoints = points.filter(d =>
+        d3.geoDistance([d.lng, d.lat], center)! <= Math.PI / 2
+      );
+
+      ocean.attr('d', pathGeneratorRef.current!({ type: "Sphere" }));
     
     
       g.selectAll<SVGPathElement, any>('path.country')
@@ -116,27 +173,20 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
         .join(
           enter => enter.append('path')
             .attr('class', 'country')
-            .attr('d', pathGenerator)
+            .attr('d', pathGeneratorRef.current!)
             .attr('fill', '#ffddcc')
             .attr('stroke', '#fff'),
           update => update
-            .attr('d', pathGenerator),
+            .attr('d', pathGeneratorRef.current!),
           exit => exit.remove()
         );
-
-      const [lon_ajust, lat_ajust] = projection.rotate(); 
-      const center: [number, number] = [-lon_ajust, -lat_ajust];
-
-      const visiblePoints = points.filter(d =>
-        d3.geoDistance([d.lng, d.lat], center)! <= Math.PI / 2
-      );
     
       g.selectAll<SVGCircleElement, any>('circle')
         .data(visiblePoints)
         .join(
           enter => enter.append('circle')
-            .attr('cx', (d) => projection([d.lng, d.lat])![0])
-            .attr('cy', (d) => projection([d.lng, d.lat])![1])
+            .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
+            .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1])
             .attr('r', (d) => Math.sqrt(d.howMany) * 2)
             .attr('fill', 'red')
             .attr('opacity', 0.5)
@@ -148,59 +198,60 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
                 .style("visibility", "visible");
             })
             .on("mousemove", (event) => {
+              const svgRect = svgRef.current!.getBoundingClientRect();
               tooltip
-                .style("left", `${event.pageX + 10}px`)
-                .style("top", `${event.pageY - 28}px`);
+                .style("left", `${event.clientX - svgRect.left + 10}px`)
+                .style("top", `${event.clientY - svgRect.top - 28}px`);
             })
             .on("mouseout", () => {
               tooltip.style("opacity", 0);
             }),
           update => update
-            .attr('cx', (d) => projection([d.lng, d.lat])![0])
-            .attr('cy', (d) => projection([d.lng, d.lat])![1]),
+            .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
+            .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1]),
           exit => exit.remove()
         );
     };
 
-    svg.on("wheel", (event) => {
-      event.preventDefault();
+    // svg.on("wheel", (event) => {
+    //   event.preventDefault();
     
-      const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;  // Aumenta ou diminui conforme o scroll
-      const scale = projection.scale();
-      projection.scale(scale * scaleFactor);  // Aplica o zoom na projeção
-      updateMap();  // Atualiza a visualização após o zoom
-    });
+    //   const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;  // Aumenta ou diminui conforme o scroll
+    //   const scale = projectionRef.current!.scale();
+    //   projectionRef.current!.scale(scale * scaleFactor);  // Aplica o zoom na projeção
+    //   updateMapRef.current();  // Atualiza a visualização após o zoom
+    // });
     
-    svg.on("mousedown", (event) => {
-      isDragging = true;
-      lastPos = [event.clientX, event.clientY];
-      event.preventDefault();
+    // svg.on("mousedown", (event) => {
+    //   isDragging = true;
+    //   lastPos = [event.clientX, event.clientY];
+    //   event.preventDefault();
 
-      //updateMap();
-    });
+    //   //updateMap();
+    // });
 
-    svg.on("mousemove", (event) => {
-      if (!isDragging || !lastPos) return;
+    // svg.on("mousemove", (event) => {
+    //   if (!isDragging || !lastPos) return;
     
-      const [lastX, lastY] = lastPos;
-      const dx = event.clientX - lastX;
-      const dy = event.clientY - lastY;
+    //   const [lastX, lastY] = lastPos;
+    //   const dx = event.clientX - lastX;
+    //   const dy = event.clientY - lastY;
     
-      const rotate = projection.rotate();
-      const sensitivity = 0.25; // Sensibilidade do movimento
+    //   const rotate = projectionRef.current!.rotate();
+    //   const sensitivity = 0.25; // Sensibilidade do movimento
     
-      // Aplica a rotação
-      projection.rotate([
-        rotate[0] + dx * sensitivity,
-        rotate[1] - dy * sensitivity,
-        rotate[2]
-      ]);
+    //   // Aplica a rotação
+    //   projectionRef.current!.rotate([
+    //     rotate[0] + dx * sensitivity,
+    //     rotate[1] - dy * sensitivity,
+    //     rotate[2]
+    //   ]);
     
-      lastPos = [event.clientX, event.clientY];
+    //   lastPos = [event.clientX, event.clientY];
     
-      // Atualiza o mapa, incluindo a rotação
-      updateMap();
-    });
+    //   // Atualiza o mapa, incluindo a rotação
+    //   updateMapRef.current();
+    // });
     
 
     d3.select(window).on("mouseup", () => {
@@ -224,18 +275,18 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       .datum({ type: "Sphere" } as any)
       .attr("fill", "#aadaff");
 
-    updateMap(); // Chama a função para desenhar o mapa inicialmente
+    updateMapRef.current(); // Chama a função para desenhar o mapa inicialmente
 
     g.selectAll('path.country')
       .data(geoData.features)
       .enter()
       .append('path')
       .attr('class', 'country')
-      .attr('d', pathGenerator)
+      .attr('d', pathGeneratorRef.current!)
       .attr('fill', '#ffddcc')
       .attr('stroke', '#fff');
       
-    const brush = d3.brush()
+    brushRef.current = d3.brush()
       .extent([[0, 0], [width, height]])
       .on("start", () => {
         // Desabilita o zoom e o drag quando o brush começa
@@ -244,19 +295,22 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
         svg.on("mousedown", null); // Desativa o drag
       })
       .on("end", (event) => {
+        
         if (!event.selection) {
           setBrushEnabled(false); // Desativa o estado de brush ativo
           return;
         }
 
-        if (typeof projection.invert !== "function") {
+        if (typeof projectionRef.current!.invert !== "function") {
           console.warn("Projection does not support invert.");
           return;
         }
 
+        console.log("brush end", event.selection);
+
         const [[x0, y0], [x1, y1]] = event.selection;
-        const p0 = projection.invert([x0, y0]);
-        const p1 = projection.invert([x1, y1]);
+        const p0 = projectionRef.current!.invert([x0, y0]);
+        const p1 = projectionRef.current!.invert([x1, y1]);
         console.log("p0", p0, "p1", p1);
 
         if (!p0 || !p1) {
@@ -281,33 +335,39 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
         const selectionSize = Math.max(selectionWidth, selectionHeight);
 
         // Ajusta a escala da projeção
-        const currentScale = projection.scale();
+        const currentScale = projectionRef.current!.scale();
         const newScale = currentScale * (Math.min(width, height) / selectionSize) * 0.5; // 0.5 para não ficar exagerado
-        projection.scale(newScale);
+        projectionRef.current!.scale(newScale);
 
         // Para recentralizar, mudamos a rotação da projeção
-        projection.rotate([-centerLon, -centerLat]);
+        projectionRef.current!.rotate([-centerLon, -centerLat]);
 
-        updateMap();
+        // Recria o pathGenerator com a nova projeção
+        pathGeneratorRef.current = d3.geoPath().projection(projectionRef.current!);
 
-        if (onBrushSelection) {
-          onBrushSelection([p0, p1]);
-        }
+        updateMapRef.current();
+
+        // Atualiza o mapa com a nova projeção e path
+        
 
         // Reativa o zoom e drag após finalizar o brush
-        setBrushEnabled(false);
-        svg.on("wheel", zoomHandler); // Reativa o zoom
-        svg.on("mousedown", dragHandler); // Reativa o drag
+        
+        svg.on("wheel", zoomHandler);
+        svg.on("mousedown", mouseDownHandler);
+        svg.on("mousemove", mouseMoveHandler);
+
+         // Atualiza o mapa após o brush
+        setBrushEnabled(false); // Desativa o estado de brush ativo
       });
     
-      if (brushEnabled) {
-        svg.select(".brush").remove(); // Remove o brush anterior, se existir
-        svg.append("g")
-          .attr("class", "brush")
-          .call(brush); // Adiciona o brush se brushEnabled for true
-      } else {
-        svg.select(".brush").remove(); // Remove o brush se brushEnabled for false
-      }
+      // if (brushEnabled) {
+      //   svg.select(".brush").remove(); // Remove o brush anterior, se existir
+      //   svg.append("g")
+      //     .attr("class", "brush")
+      //     .call(brushRef.current); // Adiciona o brush se brushEnabled for true
+      // } else {
+      //   svg.select(".brush").remove(); // Remove o brush se brushEnabled for false
+      // }
 
 
     
@@ -321,9 +381,50 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
     const toggleBrush = () => {
       setBrushEnabled(prev => !prev); // Alterna entre habilitar e desabilitar o brush
     };
+  
+  useEffect(() => {
+    const svg = d3.select(svgRef.current);
+    svg.selectAll(".brush").remove(); // <- remove todos
+  
+    if (brushEnabled && brushRef.current) {
+      svg.append("g")
+        .attr("class", "brush")
+        .call(brushRef.current)
+        .raise();
+    }
+  }, [brushEnabled]);
+  
+  useEffect(() => {
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      lastPosRef.current = null;
+    };
+  
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mouseleave", handleMouseUp); // adicional
+  
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mouseleave", handleMouseUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!points.length || !projectionRef.current) return;
+  
+    // Calcula a média da latitude e longitude dos pontos
+    const avgLon = d3.mean(points, (d) => d.lng)!;
+    const avgLat = d3.mean(points, (d) => d.lat)!;
+  
+    // Atualiza a rotação da projeção para centralizar os pontos
+    projectionRef.current.rotate([-avgLon, -avgLat]);
+  
+    // Atualiza o mapa com a nova rotação
+    updateMapRef.current?.();
+  }, [points]);
 
 
-    return (
+  return (
     <div style={{ position: "relative" }}>
       <svg ref={svgRef} width={width} height={height} style={{ cursor: "grab", backgroundColor: "#000" }} />
       {isMounted && (
@@ -365,6 +466,8 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
       )}
     </div>
   );
+
+  
   
 };
 
