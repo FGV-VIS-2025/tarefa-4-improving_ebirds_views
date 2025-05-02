@@ -156,7 +156,7 @@ export default function Home({global_data, list_visible}: Props) {
       
       <div className="grid grid-cols-[70%_30%] w-full h-screen">
         <div className="bg-white-100 p-4">
-          <WorldMap geoData={geoData} 
+          <WorldGlobe geoData={geoData} 
           points={filteredOptions} 
           onBrushSelection={handleBrush}/>
         </div>

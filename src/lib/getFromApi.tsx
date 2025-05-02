@@ -2,9 +2,9 @@ import Papa, { ParseResult, ParseMeta, ParseError } from 'papaparse';
 import axios from 'axios';
 import {ReportBirds} from '@/lib/Components';
 
-// axios.get('http://exemplo.com', { timeout: 100000 }) // Aumenta o timeout para 30 segundos
-//   .then(response => console.log(response.data))
-//   .catch(error => console.error(error));
+axios.get('http://exemplo.com', { timeout: 100000 }) // Aumenta o timeout para 30 segundos
+  .then(response => console.log(response.data))
+  .catch(error => console.error(error));
 
 const data_taxonomia_ebird = await getCsv('https://api.ebird.org/v2/ref/taxonomy/ebird');
 const data_taxonomia_local =await getJson('https://api.ebird.org/v2/ref/region/list/country/world');
