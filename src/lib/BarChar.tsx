@@ -9,30 +9,50 @@ type Props = {
   color?: d3.ScaleOrdinal<string, string>;
 };
 
-const BarChart: React.FC<Props> = ({ data, width = 600, height = 400, color }) => {
+const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
 
   const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
 
   useEffect(() => {
-    if (!data || data.length === 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // limpa o SVG
+
+
+    if (!data || data.length === 0) return;
+
+    // interactividade
+
+    const tooltip = d3.select("body")
+      .append("div")
+      .style("position", "absolute")
+      .style("padding", "6px")
+      .style("background", "rgba(0, 0, 0, 0.7)")
+      .style("color", "white")
+      .style("border-radius", "4px")
+      .style("pointer-events", "none")
+      .style("font-size", "12px")
+      .style("display", "none");
+
+    
 
     const margin = { top: 20, right: 30, bottom: 40, left: 100 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
+    const sortedData = [...data].sort((a, b) => 
+      d3.descending(a.howMany, b.howMany));
+
     const x = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.howMany)!])
+      .domain([0, d3.max(sortedData, d => d.howMany)!])
       .nice()
       .range([0, innerWidth]);
       
     const y = d3.scaleBand()
-      .domain(data.map(d => d.locName))
-      .range([0, innerWidth])
+      .domain(sortedData.map(d => d.locName))
+      .range([0, innerHeight])
       .padding(0.1);
 
     const g = svg.append('g')
@@ -46,7 +66,7 @@ const BarChart: React.FC<Props> = ({ data, width = 600, height = 400, color }) =
       .call(d3.axisBottom(x));
 
     g.selectAll('rect')
-      .data(data)
+      .data(sortedData)
       .enter()
       .append('rect')
       .attr('x', 0)
@@ -54,6 +74,27 @@ const BarChart: React.FC<Props> = ({ data, width = 600, height = 400, color }) =
       .attr('height', y.bandwidth())
       .attr('width', d => x(d.howMany)!)
       .attr('fill',  (d) => colorScale(d.comName)) // Cor da barra;
+      .on('mouseover', (event, d) => {
+        tooltip
+          .style("display", "block")
+          .html(`
+            <strong>${d.comName}</strong><br/>
+            Local: ${d.locName}<br/>
+            Quantidade: ${d.howMany}
+          `);
+      })
+      .on('mousemove', (event) => {
+        tooltip
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 28) + "px");
+      })
+      .on('mouseout', () => {
+        tooltip.style("display", "none");
+      });
+
+
+
+
 
   }, [data, width, height]);
 

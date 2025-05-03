@@ -11,11 +11,21 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
   
       onChange(updated);  // Atualiza o estado
     };
-  
+
+    const handleSelectAll = () => {
+      if (selected.length === options.length) {
+        onChange([]); // Se tudo está selecionado, limpa
+      } else {
+        onChange([...options]); // Seleciona tudo
+      }
+    };
+
     // Filtra as opções com base no texto da pesquisa
     const filteredOptions = options.filter(option =>
       option.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const allSelected = selected.length === options.length;
   
     return (
       <div>
@@ -29,9 +39,21 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
           placeholder="Pesquise uma opção"
           style={{ marginBottom: '10px', padding: '5px', width: '100%' }}
         />
+
+        <div style={{ marginBottom: '10px' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={handleSelectAll}
+            />{' '}
+            Selecionar tudo
+          </label>
+        </div>
   
         {/* Lista de opções filtradas */}
         {searchQuery.trim() !== '' && (
+          
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {filteredOptions.map(option => (
               <li key={option}>
@@ -47,6 +69,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
               </li>
             ))}
           </ul>
+
         )}
       </div>
     );

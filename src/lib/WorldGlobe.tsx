@@ -19,7 +19,7 @@ type Points = {
   species: string;
 };
 
-const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, points = [], onBrushSelection, color }) => {
+const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, points = [], onBrushSelection, color }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [flattened, setFlattened] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
@@ -87,14 +87,14 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
     const tooltip = d3.select(svgRef.current!.parentElement)
       .append("div")
       .style("position", "absolute")
-      .style("background", "white")
-      .style("padding", "5px 10px")
+      .style("background", "rgba(0, 0, 0, 0.7)")
+      .style("color", "white")
+      .style("padding", "6px 10px")
       .style("border", "1px solid #999")
       .style("border-radius", "4px")
-      .style("pointer-events", "none")
-      .style("opacity", 0);
+      .style("font-size", "12px")
+      .style("pointer-events", "none");
     
-    //.clipAngle(90); // mostra só metade visível
      // Verifica se a projeção foi criada corretamente
     projectionRef.current = flattened 
      ? d3.geoEquirectangular()
@@ -121,16 +121,6 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
 
     let isDragging = false;
     let lastPos: [number, number] | null = null;
-
-    // const zoomHandler = (event: WheelEvent) => {
-    //   event.preventDefault();
-      
-    //   const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9; // Aumenta ou diminui conforme o scroll
-    //   const scale = projectionRef.current!.scale();
-    //   projectionRef.current!.scale(scale * scaleFactor); // Aplica o zoom na projeção
-      
-    //   updateMapRef.current(); // Atualiza a visualização após o zoom
-    // };
 
     const dragHandler = (event: MouseEvent) => {
       if (!isDragging || !lastPos) return;
@@ -212,47 +202,6 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
           exit => exit.remove()
         );
     };
-
-    // svg.on("wheel", (event) => {
-    //   event.preventDefault();
-    
-    //   const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;  // Aumenta ou diminui conforme o scroll
-    //   const scale = projectionRef.current!.scale();
-    //   projectionRef.current!.scale(scale * scaleFactor);  // Aplica o zoom na projeção
-    //   updateMapRef.current();  // Atualiza a visualização após o zoom
-    // });
-    
-    // svg.on("mousedown", (event) => {
-    //   isDragging = true;
-    //   lastPos = [event.clientX, event.clientY];
-    //   event.preventDefault();
-
-    //   //updateMap();
-    // });
-
-    // svg.on("mousemove", (event) => {
-    //   if (!isDragging || !lastPos) return;
-    
-    //   const [lastX, lastY] = lastPos;
-    //   const dx = event.clientX - lastX;
-    //   const dy = event.clientY - lastY;
-    
-    //   const rotate = projectionRef.current!.rotate();
-    //   const sensitivity = 0.25; // Sensibilidade do movimento
-    
-    //   // Aplica a rotação
-    //   projectionRef.current!.rotate([
-    //     rotate[0] + dx * sensitivity,
-    //     rotate[1] - dy * sensitivity,
-    //     rotate[2]
-    //   ]);
-    
-    //   lastPos = [event.clientX, event.clientY];
-    
-    //   // Atualiza o mapa, incluindo a rotação
-    //   updateMapRef.current();
-    // });
-    
 
     d3.select(window).on("mouseup", () => {
       if (isDragging) {
@@ -360,18 +309,6 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
         setBrushEnabled(false); // Desativa o estado de brush ativo
       });
     
-      // if (brushEnabled) {
-      //   svg.select(".brush").remove(); // Remove o brush anterior, se existir
-      //   svg.append("g")
-      //     .attr("class", "brush")
-      //     .call(brushRef.current); // Adiciona o brush se brushEnabled for true
-      // } else {
-      //   svg.select(".brush").remove(); // Remove o brush se brushEnabled for false
-      // }
-
-
-    
-    
     return () => {
       tooltip.remove();
     };
@@ -426,7 +363,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 800, height = 450, geoData, point
 
   return (
     <div style={{ position: "relative" }}>
-      <svg ref={svgRef} width={width} height={height} style={{ cursor: "grab", backgroundColor: "#000" }} />
+      <svg ref={svgRef} width={width} height={height} style={{ cursor: "grab", backgroundColor: "#0a0a0a" }} />
       {isMounted && (
         <>
           <button
