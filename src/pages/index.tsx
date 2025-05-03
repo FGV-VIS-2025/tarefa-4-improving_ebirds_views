@@ -56,6 +56,14 @@ export default function Home({global_data, list_visible}: Props) {
 
   const [geoData, setGeoData] = useState<any>(null);
 
+  const [globeCenter, setGlobeCenter] = useState<[number, number] | null>(null);
+  const [globeZoom, setGlobeZoom] = useState<number>(1);
+
+  const handleBarClick = (lat: number, lng: number) => {
+    setGlobeCenter([lat, lng]);
+    setGlobeZoom(4); // Ajuste o nível de zoom conforme necessário
+  };
+
   const filteredOptions = useMemo(() => {
     return global_data.filter((option:any) => 
     selected.includes(option.comName) 
@@ -121,45 +129,47 @@ export default function Home({global_data, list_visible}: Props) {
     
   return (
     
-    <div >      
-      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
-        <MultiSelect
-            options={list_visible}
-            selected={selected}
-            onChange={setSelected}
-            label="Select options"
-        />
-      </div>
-        
-      <div className="bg-white-100 p-4 max-h-60 overflow-auto">
-        {selected.length > 0 ? (
-          <div className="p-4">
-            <ul className="list-none p-0">
-              {selected.map((item) => (
-                <li key={item} className="mb-2 flex items-center">
-                  {/* <span>{item}</span> */}
-                  <button
-                    onClick={() => {
-                      const updated = selected.filter(sel => sel !== item);
-                      setSelected(updated);
-                    }}
-                    style={{ backgroundColor: color(item) }}
-                    className="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-600"
-                  >
-                    {item}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="p-4">Nenhum selecionado</p>
-        )}
+    <div style={{backgroundColor: "#0a0a0a", color: "#d3d3d3"}}>      
+      <div className="grid grid-cols-[25%_75%] w-full" style={{ alignItems: 'start' }}>
+        <div className="bg-white-100 p-4">
+          <MultiSelect
+              options={list_visible}
+              selected={selected}
+              onChange={setSelected}
+              label="Select options"
+          />
+        </div>
+          
+        <div className="bg-white-100 p-4 max-h-30 overflow-auto">
+          {selected.length > 0 ? (
+            <div className="p-4">
+              <ul className="list-none p-0 flex flex-wrap">
+                {selected.map((item) => (
+                  <li key={item} className="mb-2 mr-2">
+                    {/* <span>{item}</span> */}
+                    <button
+                      onClick={() => {
+                        const updated = selected.filter(sel => sel !== item);
+                        setSelected(updated);
+                      }}
+                      style={{ backgroundColor: color(item) }}
+                      className="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-600"
+                    >
+                      {item}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="p-4">None Selected</p>
+          )}
+        </div>
       </div>
       
-      <div className="grid grid-cols-[25%_75%] w-full h-screen">
+      <div className="grid grid-cols-[25%_75%] w-full" style={{ alignItems: 'start' }}>
         
-        <div className="bg-black-100 p-4">
+        <div style={{backgroundColor: "#0a0a0a", color: "#d3d3d3"}}>
           <BarChart
           data={
             selected.length === 0
@@ -168,14 +178,20 @@ export default function Home({global_data, list_visible}: Props) {
                 ? selectedPoints
                 : filteredOptions
           }
-          color={color}/>
+          color={color}
+          onBarClick={handleBarClick}
+          />
         </div>
 
-        <div className="w-full h-screen bg-white-100 p-4">
-          <WorldGlobe geoData={geoData} 
+        <div style={{backgroundColor: "#0a0a0a"}}>
+          <WorldGlobe 
+          geoData={geoData} 
           points={filteredOptions} 
           onBrushSelection={handleBrush}
-          color={color}/>
+          color={color}
+          center_by_bar={globeCenter}
+          zoom_by_bar={globeZoom}
+          />
         </div>
 
       </div>     

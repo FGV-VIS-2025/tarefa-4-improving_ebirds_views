@@ -10,6 +10,8 @@ type Props = {
   points?: ReportBirds[]; // Adicionando a propriedade points
   onBrushSelection?: (selection: [[number, number], [number, number]]) => void;
   color?: d3.ScaleOrdinal<string, string>;
+  center_by_bar: [number, number] | null;
+  zoom_by_bar: number;
 };
 
 type Points = {
@@ -19,7 +21,7 @@ type Points = {
   species: string;
 };
 
-const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, points = [], onBrushSelection, color }) => {
+const WorldGlobe: React.FC<Props> = ({ width = 900, height = 722, geoData, points = [], onBrushSelection, color, center_by_bar, zoom_by_bar }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [flattened, setFlattened] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
@@ -70,6 +72,39 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
     lastPosRef.current = [event.clientX, event.clientY];
     updateMapRef.current?.();
   };
+
+  function transitionProjection(
+    projection: d3.GeoProjection,
+    newRotate: [number, number, number],
+    newScale: number,
+    duration: number,
+    updateMap: () => void
+  ) {
+    const currentRotate = projection.rotate();
+    const currentScale = projection.scale();
+  
+    const rotateInterp = d3.interpolate(currentRotate, newRotate);
+    const scaleInterp = d3.interpolate(currentScale, newScale);
+  
+    d3.transition()
+      .duration(duration)
+      .tween("projection", () => t => {
+        projection.rotate(rotateInterp(t));
+        projection.scale(scaleInterp(t));
+        updateMap();
+      });
+  }
+
+  const radiusScale = d3.scaleSqrt()
+    .domain([0, d3.max(points, d => d.howMany)!])
+    .range([1, 50]);
+
+    const howManyValues = points.map(d => d.howMany).filter(v => v != null);
+    const minVal = d3.min(howManyValues) ?? 0;
+    const maxVal = d3.max(howManyValues) ?? 0;
+    const meanVal = d3.mean(howManyValues) ?? (minVal + maxVal) / 2;
+    const meanInf = (meanVal + minVal) / 2;
+    const meanMax = (meanVal + maxVal) / 2;
 
   useEffect(() => {
     
@@ -143,6 +178,8 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
       
       updateMapRef.current(); // Atualiza o mapa, incluindo a rotação
     };
+
+    
     
 
     updateMapRef.current = () => {
@@ -172,13 +209,12 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
         );
     
       g.selectAll<SVGCircleElement, any>('circle')
-        .data(visiblePoints)
+        .data(visiblePoints, d => d.locID + d.comName)
         .join(
           enter => enter.append('circle')
             .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
             .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1])
-            .attr('r', (d) => Math.sqrt(d.howMany) * 2)
-            .attr('fill', 'red')
+            .attr('r', (d) => radiusScale(d.howMany))
             .attr('opacity', 0.5)
             .attr('fill', (d) => colorScale(d.comName))
             .on("mouseover", (event, d) => {
@@ -197,8 +233,9 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
               tooltip.style("opacity", 0);
             }),
           update => update
-            .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
-            .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1]),
+          .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
+          .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1])
+          .attr('r', (d) => radiusScale(d.howMany)),
           exit => exit.remove()
         );
     };
@@ -360,6 +397,21 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
     updateMapRef.current?.();
   }, [points]);
 
+  useEffect(() => {
+    if (!center_by_bar || !projectionRef.current || !updateMapRef.current) return;
+  
+    const [lat, lon] = center_by_bar;
+  
+    // Aplica rotação e zoom na projeção existente
+    const newRotate:[number, number, number] = [-lon, -lat, 0];
+    const projection = projectionRef.current;
+    
+  
+    // Atualiza os paths
+    const newScale = 2000;
+    transitionProjection(projection, newRotate, newScale, 1000, updateMapRef.current);
+  }, [center_by_bar, zoom_by_bar]);
+
 
   return (
     <div style={{ position: "relative" }}>
@@ -399,6 +451,65 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 900, geoData, point
           >
             {brushEnabled ? "Desabilitar Brush" : "Habilitar Brush"}
           </button>
+
+          <div
+            style={{
+              position: "absolute",
+              top: 100, // abaixo dos botões
+              right: 10,
+              padding: "4px",
+              backgroundColor: "#ffffffdd",
+              borderRadius: "8px",
+              fontSize: "12px",
+              color: "#000",
+              width: "170px", // Definindo uma largura fixa para a div
+            }}
+          >
+            <strong>How many birds:</strong>
+            {/* Verificar se algum valor é maior que 0 antes de renderizar a legenda */}
+            {[minVal, meanInf, meanVal, meanMax, maxVal].some(n => n > 0) && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  marginTop: "6px",
+                }}
+              >
+                {[minVal, meanInf, meanVal, meanMax, maxVal].map((n) => {
+                  if (n > 0) { // Exibir valores apenas se forem positivos
+                    const r = radiusScale(n);
+                    return (
+                      <div key={n} 
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between", // Alinha números à esquerda e círculos à direita
+                          width: "100%", // Para garantir que ocupe toda a largura disponível
+                          alignItems: "center",
+                        }}
+                      >
+                        <span style={{ fontSize: "11px", whiteSpace: "nowrap" }}>{Math.round(n)}   </span>
+                        <svg width={r * 2} height={r * 2}>
+                          <circle
+                            cx={r}
+                            cy={r}
+                            r={r}
+                            fill="#aaa"
+                            opacity={0.6}
+                            stroke="#666"
+                          />
+                        </svg>
+                        
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </div>
+
         </>
       )}
     </div>

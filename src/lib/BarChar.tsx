@@ -7,10 +7,12 @@ type Props = {
   width?: number;
   height?: number;
   color?: d3.ScaleOrdinal<string, string>;
+  onBarClick?: any;
 };
 
-const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color }) => {
+const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onBarClick }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  height = data.length * 12 + 70
 
 
   const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
@@ -90,6 +92,10 @@ const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color }) =
       })
       .on('mouseout', () => {
         tooltip.style("display", "none");
+      })
+      .on('click', (event, d) => {
+        // Envia as coordenadas de latitude e longitude para o componente do globo
+        onBarClick(d.lat, d.lng);
       });
 
 
