@@ -71,7 +71,6 @@ export default function Home({global_data, list_visible}: Props) {
   ];
 
 
-
   const color = d3.scaleOrdinal<string, string>()
     .domain(Array.from(new Set(list_visible.map((d : any) => d.comName)))) // Todas espécies únicas
     .range(customColors);
