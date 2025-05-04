@@ -167,7 +167,7 @@ export default function Home({global_data, list_visible}: Props) {
         </div>
       </div>
       
-      <div className="grid grid-cols-[25%_75%] w-full" style={{ alignItems: 'start' }}>
+      <div className="grid grid-cols-[30%_70%] w-full" style={{ alignItems: 'start' }}>
         
         <div style={{backgroundColor: "#0a0a0a", color: "#d3d3d3"}}>
           <BarChart

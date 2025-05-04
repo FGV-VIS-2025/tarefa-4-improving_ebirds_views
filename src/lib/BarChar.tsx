@@ -5,14 +5,14 @@ import * as d3 from 'd3';
 type Props = {
   data: ReportBirds[];
   width?: number;
-  height?: number;
+  //height?: number;
   color?: d3.ScaleOrdinal<string, string>;
   onBarClick?: any;
 };
 
-const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onBarClick }) => {
+const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  height = data.length * 12 + 70
+  const height = data.length * 12 + 90
 
 
   const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
@@ -40,12 +40,14 @@ const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onB
 
     
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 100 };
+    const margin = { top: 20, right: 30, bottom: 60, left: 150 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     const sortedData = [...data].sort((a, b) => 
       d3.descending(a.howMany, b.howMany));
+
+    const maxX = d3.max(sortedData, d => d.howMany)!;
 
     const x = d3.scaleLinear()
       .domain([0, d3.max(sortedData, d => d.howMany)!])
@@ -60,13 +62,41 @@ const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onB
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
+    const maxLabelLength = 15
     g.append('g')
-      .call(d3.axisLeft(y));
+      .call(d3.axisLeft(y).tickFormat(d => {
+        const name = String(d);
+        return name.length > maxLabelLength
+          ? name.slice(0, maxLabelLength - 3) + '...'
+          : name;
+      }));
+
+    const xAxis = d3.axisBottom(x);
+    if (maxX > 100) {
+      const tickInterval = 20;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 200) {
+      const tickInterval = 30;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 300) {
+      const tickInterval = 40;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 400) {
+      const tickInterval = 50;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
 
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x));
-
+      .call(xAxis);
+    
     g.selectAll('rect')
       .data(sortedData)
       .enter()
@@ -81,8 +111,8 @@ const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onB
           .style("display", "block")
           .html(`
             <strong>${d.comName}</strong><br/>
-            Local: ${d.locName}<br/>
-            Quantidade: ${d.howMany}
+            Place: ${d.locName}<br/>
+            How many: ${d.howMany}
           `);
       })
       .on('mousemove', (event) => {
@@ -97,6 +127,23 @@ const BarChart: React.FC<Props> = ({ data, width = 350, height = 900, color, onB
         // Envia as coordenadas de latitude e longitude para o componente do globo
         onBarClick(d.lat, d.lng);
       });
+
+    g.append("text")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight + 35) // abaixo do eixo X
+      .attr("text-anchor", "middle")
+      .attr("fill", "white")
+      .style("font-size", "12px")
+      .text("How many birds");
+
+    g.append("text")
+      .attr("transform", `rotate(-90)`)
+      .attr("x", -innerHeight / 2)
+      .attr("y", -margin.left + 20) // distância da borda esquerda
+      .attr("text-anchor", "middle")
+      .attr("fill", "white")
+      .style("font-size", "12px")
+      .text("Local da observação");
 
 
 

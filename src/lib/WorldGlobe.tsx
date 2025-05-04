@@ -21,7 +21,7 @@ type Points = {
   species: string;
 };
 
-const WorldGlobe: React.FC<Props> = ({ width = 900, height = 722, geoData, points = [], onBrushSelection, color, center_by_bar, zoom_by_bar }) => {
+const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, points = [], onBrushSelection, color, center_by_bar, zoom_by_bar }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [flattened, setFlattened] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
@@ -219,7 +219,10 @@ const WorldGlobe: React.FC<Props> = ({ width = 900, height = 722, geoData, point
             .attr('fill', (d) => colorScale(d.comName))
             .on("mouseover", (event, d) => {
               tooltip
-                .html(`<strong>Espécie:</strong> ${d.comName}<br/><strong>Quantidade:</strong> ${d.howMany}`)
+                .html(
+                  `<strong>${d.comName}</strong><br/>
+                   Place: ${d.locName}<br/>
+                   How many: ${d.howMany}`)
                 .style("opacity", 1)
                 .style("visibility", "visible");
             })
