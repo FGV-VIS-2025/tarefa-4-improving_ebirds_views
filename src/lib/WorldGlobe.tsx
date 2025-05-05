@@ -514,7 +514,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 830, height = 520, geoData, point
               cursor: "pointer",
             }}
           >
-            {flattened ? <img src="/returnglobe.png" alt="retunr globe" /> : <img src="/flatemglobe.png" alt="flatem globe" />}
+            {flattened ? <img src="./returnglobe.png" alt="retunr globe" /> : <img src="./flatemglobe.png" alt="flatem globe" />}
           </button>
 
           <button
@@ -530,7 +530,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 830, height = 520, geoData, point
               cursor: "pointer",
             }}
           >
-            {brushEnabled ? <img src="/cancelselect.png" alt="Cancelar Filtro" /> : <img src="/selectarea.png" alt="Ativar Filtro" />}
+            {brushEnabled ? <img src="./cancelselect.png" alt="Cancelar Filtro" /> : <img src="./selectarea.png" alt="Ativar Filtro" />}
           </button>
 
           <button
@@ -545,7 +545,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 830, height = 520, geoData, point
               border: 'none', 
               cursor: 'pointer' }}
           >
-            {brushPolygonGeo? <img src="/clearon.png" alt="climpar ativado" /> : <img src="/clearoff.png" alt="limbar escondido" />}
+            {brushPolygonGeo? <img src="./clearon.png" alt="climpar ativado" /> : <img src="./clearoff.png" alt="limbar escondido" />}
           </button>
 
           <div
