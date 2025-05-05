@@ -129,7 +129,8 @@ export default function Home({global_data, list_visible}: Props) {
     
   return (
     
-    <div style={{backgroundColor: "#0a0a0a", color: "#d3d3d3"}}>      
+    <div style={{backgroundColor: "#0a0a0a", color: "#d3d3d3"}}>    
+      <Navbar></Navbar>  
       <div className="grid grid-cols-[25%_75%] w-full" style={{ alignItems: 'start' }}>
         <div className="bg-white-100 p-4">
           <MultiSelect
@@ -139,31 +140,43 @@ export default function Home({global_data, list_visible}: Props) {
               label="Select options"
           />
         </div>
-          
-        <div className="bg-white-100 p-4 max-h-30 overflow-auto">
-          {selected.length > 0 ? (
-            <div className="p-4">
-              <ul className="list-none p-0 flex flex-wrap">
-                {selected.map((item) => (
-                  <li key={item} className="mb-2 mr-2">
-                    {/* <span>{item}</span> */}
-                    <button
-                      onClick={() => {
-                        const updated = selected.filter(sel => sel !== item);
-                        setSelected(updated);
-                      }}
-                      style={{ backgroundColor: color(item) }}
-                      className="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-600"
-                    >
-                      {item}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="p-4">None Selected</p>
-          )}
+        <div>
+          <div className="ml-8 text-2xl font-bold text-white">
+            <h1>Species:</h1>
+          </div>
+            
+          <div className="bg-white-100 p-4 max-h-20 overflow-auto">
+            {selected.length > 0 ? (
+              <div className="p-4">
+                <ul className="list-none p-0 flex flex-wrap">
+                  {selected.map((item) => (
+                    <li key={item} className="mb-px mr-1">
+                      {/* <span>{item}</span> */}
+                      <button
+                        onClick={() => {
+                          const updated = selected.filter(sel => sel !== item);
+                          setSelected(updated);
+                        }}
+                        style={{ 
+                          backgroundColor: color(item),
+                          width: "200px",
+                          height: "20",
+                          padding: "2px 4px",
+                          lineHeight: "20px",
+                          fontSize: "13px"
+                        }}
+                        className="ml-1 text-white"
+                      >
+                        {item}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="p-4">None Selected</p>
+            )}
+          </div>
         </div>
       </div>
       

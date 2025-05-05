@@ -26,8 +26,8 @@ const data_categorias_ebirds_function = async (): Promise<string[]> => {
   };
 
 export function getJsonFromCode(codeRegion: string) {
-    return getJson(`https://api.ebird.org/v2/data/obs/${codeRegion}/recent?back=5&cat=species&maxResults=1`);
-    };
+    return getJson(`https://api.ebird.org/v2/data/obs/${codeRegion}/recent?back=5&cat=species`);
+    };//&maxResults=1
 
 export async function getUnique(data : ParseResult<unknown>, key : string) {
 

@@ -10,14 +10,16 @@ type Props = {
   onBarClick?: any;
 };
 
-const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => {
+const BarChart: React.FC<Props> = ({ data, width = 461, color, onBarClick }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const height = data.length * 12 + 90
+  const height = data.length * 12  + 90
 
 
   const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
 
   useEffect(() => {
+
+
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // limpa o SVG
@@ -38,14 +40,41 @@ const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => 
       .style("font-size", "12px")
       .style("display", "none");
 
-    
+    const title = "Places with most sightings";  // Aqui você pode definir o título
+    const titleHeight = 20; 
 
-    const margin = { top: 20, right: 30, bottom: 60, left: 150 };
+    const margin = { top: 40, right: 30, bottom: 60, left: 150 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
+    
 
+    svg.append("text")
+    .attr("x", innerWidth / 2)
+    .attr("y", margin.top / 2) // Ajuste a posição vertical conforme necessário
+    .attr("text-anchor", "middle")
+    .attr("fill", "white")
+    .style("font-size", "16px")
+    .style("font-weight", "bold")
+    .text(title);
+    
+    //ordenar dada
     const sortedData = [...data].sort((a, b) => 
       d3.descending(a.howMany, b.howMany));
+    const groups = Array.from(new Set(sortedData.map(d => d.locName)));
+
+    const groupData = Array.from(
+      d3.group(sortedData, d => d.locName),
+      ([key, values]) => ({ group: key, values })
+    );
+
+    const grouped = d3.groups(sortedData, d => d.locName).map(([group, values]) => ({
+      group,
+      values,
+      total: d3.sum(values, d => d.howMany),
+    }));
+    
+    // Ordena decrescentemente pelo total de aves
+    grouped.sort((a, b) => d3.descending(a.total, b.total));
 
     const maxX = d3.max(sortedData, d => d.howMany)!;
 
@@ -55,13 +84,21 @@ const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => 
       .range([0, innerWidth]);
       
     const y = d3.scaleBand()
-      .domain(sortedData.map(d => d.locName))
+      .domain(grouped.map(d => d.group))
       .range([0, innerHeight])
       .padding(0.1);
+
+    // const ySubgroup = d3.scaleBand()
+    //   .domain(subgroups)
+    //   .range([0, y.bandwidth()])
+    //   .padding(0.05);
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
+      
+    
+    
     const maxLabelLength = 15
     g.append('g')
       .call(d3.axisLeft(y).tickFormat(d => {
@@ -92,40 +129,85 @@ const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => 
       const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
       xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
     }
+    if (maxX > 500) {
+      const tickInterval = 100;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 1000) {
+      const tickInterval = 200;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 2000) {
+      const tickInterval = 300;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 3000) {
+      const tickInterval = 400;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 4000) {
+      const tickInterval = 500;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 5000) {
+      const tickInterval = 1000;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
+    if (maxX > 10000) {
+      const tickInterval = 2000;
+      const tickValues = d3.range(0, maxX + tickInterval, tickInterval);
+      xAxis.tickValues(tickValues); // Ajusta a quantidade de ticks para 30 em 30
+    }
 
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(xAxis);
     
-    g.selectAll('rect')
-      .data(sortedData)
-      .enter()
-      .append('rect')
-      .attr('x', 0)
-      .attr('y', d => y(d.locName)!)
-      .attr('height', y.bandwidth())
-      .attr('width', d => x(d.howMany)!)
-      .attr('fill',  (d) => colorScale(d.comName)) // Cor da barra;
-      .on('mouseover', (event, d) => {
-        tooltip
-          .style("display", "block")
-          .html(`
-            <strong>${d.comName}</strong><br/>
-            Place: ${d.locName}<br/>
-            How many: ${d.howMany}
-          `);
-      })
-      .on('mousemove', (event) => {
-        tooltip
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 28) + "px");
-      })
-      .on('mouseout', () => {
-        tooltip.style("display", "none");
-      })
-      .on('click', (event, d) => {
-        // Envia as coordenadas de latitude e longitude para o componente do globo
-        onBarClick(d.lat, d.lng);
+    g.selectAll('g.layer')
+      .data(groupData)
+      .join('g')
+        .attr('transform', d => `translate(0,${y(d.group)!})`)
+        .each(function(groupDatum: { group: string, values: ReportBirds[] }) {
+          const group = d3.select(this);
+          const groupSpecies = groupDatum.values.map((d:ReportBirds) => d.comName); // apenas as espécies presentes no grupo
+      
+          const localYSubgroup = d3.scaleBand()
+            .domain(groupSpecies)
+            .range([0, y.bandwidth()])
+            .padding(0.05);
+        
+    group.selectAll('rect')
+      .data((d:any) => d.values)
+      .join('rect')
+        .attr('y', (d:any) => localYSubgroup(d.comName)!)
+        .attr('x', 0)
+        .attr('height', localYSubgroup.bandwidth())
+        .attr('width', (d:any) => x(d.howMany)!)
+        .attr('fill', (d:any) => colorScale(d.comName))
+        .on('mouseover', (event, d:any) => {
+          tooltip
+            .style("display", "block")
+            .html(`
+              <strong>${d.comName}</strong><br/>
+              Local: ${d.locName}<br/>
+              Quantidade: ${d.howMany}
+            `);
+        })
+        .on('mousemove', (event) => {
+          tooltip
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+        })
+        .on('mouseout', () => tooltip.style("display", "none"))
+        .on('click', (event, d:any) => {
+          onBarClick?.(d.lat, d.lng);
+        });
       });
 
     g.append("text")
@@ -151,7 +233,11 @@ const BarChart: React.FC<Props> = ({ data, width = 475, color, onBarClick }) => 
 
   }, [data, width, height]);
 
-  return <svg ref={svgRef} width={width} height={height} />;
+  return (
+    <div style={{ height: 540, overflowY: 'auto', overflowX: 'hidden' }} className='mt-6'>
+      <svg ref={svgRef} width={width} height={height} />
+    </div>
+  );
 };
 
 export default BarChart;

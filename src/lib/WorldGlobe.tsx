@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { FeatureCollection, Geometry } from 'geojson';
 import {ReportBirds} from '@/lib/Components';
+import type { Feature, Polygon } from 'geojson';
 
 type Props = {
   width?: number;
@@ -21,11 +22,13 @@ type Points = {
   species: string;
 };
 
-const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, points = [], onBrushSelection, color, center_by_bar, zoom_by_bar }) => {
+const WorldGlobe: React.FC<Props> = ({ width = 830, height = 520, geoData, points = [], onBrushSelection, color, center_by_bar, zoom_by_bar }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [flattened, setFlattened] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
   const [brushEnabled, setBrushEnabled] = React.useState(false);
+  const [brushPolygonGeo, setBrushPolygonGeo] = React.useState<Feature<Polygon> | null>(null);
+  const [projectionVersion, setProjectionVersion] = useState(0);
 
   const colorScale = color || d3.scaleOrdinal(d3.schemeCategory10); // Define a escala de cores
 
@@ -152,6 +155,12 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
 
     const g = svg.append("g");
 
+    const brushPolygon = svg.append("path")
+      .attr("id", "brush-polygon")
+      .attr("fill", "rgba(88, 88, 72, 0.2)")
+      .attr("stroke", "orange")
+      .attr("stroke-width", 2);
+
 
 
     let isDragging = false;
@@ -215,7 +224,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
             .attr('cx', (d) => projectionRef.current!([d.lng, d.lat])![0])
             .attr('cy', (d) => projectionRef.current!([d.lng, d.lat])![1])
             .attr('r', (d) => radiusScale(d.howMany))
-            .attr('opacity', 0.5)
+            .attr('opacity', 0.70)
             .attr('fill', (d) => colorScale(d.comName))
             .on("mouseover", (event, d) => {
               tooltip
@@ -241,6 +250,8 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
           .attr('r', (d) => radiusScale(d.howMany)),
           exit => exit.remove()
         );
+      setProjectionVersion(prev => prev + 1);
+
     };
 
     d3.select(window).on("mouseup", () => {
@@ -282,6 +293,50 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
         setBrushEnabled(true);
         svg.on("wheel", null); // Desativa o zoom
         svg.on("mousedown", null); // Desativa o drag
+      })
+      .on("brush", (event) => {
+        const selection = event.selection;
+        if (!selection) return;
+      
+        const [[x0, y0], [x1, y1]] = selection;
+        
+
+        if (typeof projectionRef.current!.invert !== "function") {
+          console.warn("Projection does not support invert.");
+          return;
+        }
+
+        const p1 = projectionRef.current!.invert([x0, y0]); // [lng, lat]
+        const p2 = projectionRef.current!.invert([x1, y1]);
+
+        if (!p1 || !p2) return;
+      
+        // Convertemos os cantos do retângulo para coordenadas geográficas
+        const lngMin = Math.min(p1[0], p2[0]);
+        const lngMax = Math.max(p1[0], p2[0]);
+        const latMin = Math.min(p1[1], p2[1]);
+        const latMax = Math.max(p1[1], p2[1]);
+
+        //if (!pTopLeft || !pTopRight || !pBottomRight || !pBottomLeft) return;
+              
+        // Criamos um polígono em GeoJSON
+        const polygon: Feature<Polygon> = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [lngMin, latMin],
+              [lngMin, latMax],
+              [lngMax, latMax],
+              [lngMax, latMin],
+              [lngMin, latMin] // Fechar o polígono
+            ]]
+          },
+          properties: {}
+        };
+      
+        // Atualizamos um path que será desenhado sobre o globo
+        setBrushPolygonGeo(polygon); // pathGenerator = d3.geoPath().projection(projection)
       })
       .on("end", (event) => {
         
@@ -344,6 +399,7 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
         svg.on("wheel", zoomHandler);
         svg.on("mousedown", mouseDownHandler);
         svg.on("mousemove", mouseMoveHandler);
+        
 
          // Atualiza o mapa após o brush
         setBrushEnabled(false); // Desativa o estado de brush ativo
@@ -358,6 +414,15 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
     const toggleBrush = () => {
       setBrushEnabled(prev => !prev); // Alterna entre habilitar e desabilitar o brush
     };
+
+    const clearBrush = () => {
+      setBrushPolygonGeo(null); // Remove o polígono
+      setBrushEnabled(false);   // Desativa o brush
+      onBrushSelection?.(null as any); // Reseta o callback externo (pode ajustar o tipo se preferir)
+
+      // Limpa o path do brush visualmente
+      d3.select("#brush-polygon").attr("d", null);
+    };
   
   useEffect(() => {
     const svg = d3.select(svgRef.current);
@@ -367,9 +432,24 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
       svg.append("g")
         .attr("class", "brush")
         .call(brushRef.current)
+        d3.select(svgRef.current)
+        .select<SVGGElement>(".brush")
+        .call(brushRef.current)
+        .selectAll("rect")
+        .style("opacity", 0)
         .raise();
     }
   }, [brushEnabled]);
+
+  useEffect(() => {
+    if (!brushPolygonGeo || !pathGeneratorRef.current) return;
+  
+    d3.select("#brush-polygon")
+      .attr("d", pathGeneratorRef.current(brushPolygonGeo))
+      .attr("stroke", "rgba(0, 0, 0, 0.2)")         // cor da borda
+      .attr("fill", "rgba(75, 75, 75, 0.2)"); // preenchimento com opacidade
+  }, [brushPolygonGeo, projectionVersion]);
+  
   
   useEffect(() => {
     const handleMouseUp = () => {
@@ -417,48 +497,61 @@ const WorldGlobe: React.FC<Props> = ({ width = 700, height = 700, geoData, point
 
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative" }} className='ml-6 mt-6'>
       <svg ref={svgRef} width={width} height={height} style={{ cursor: "grab", backgroundColor: "#0a0a0a" }} />
       {isMounted && (
         <>
           <button
             onClick={() => setFlattened((prev) => !prev)}
             style={{
+              width: "200px",
+              height: "40px",
               position: "absolute",
               top: 10,
               right: 10,
               padding: "8px 12px",
-              backgroundColor: "#4dabf7",
               border: "none",
-              borderRadius: "8px",
-              color: "#fff",
               cursor: "pointer",
             }}
           >
-            {flattened ? "Voltar ao globo" : "Flatten globe"}
+            {flattened ? <img src="/returnglobe.png" alt="retunr globe" /> : <img src="/flatemglobe.png" alt="flatem globe" />}
           </button>
 
           <button
             onClick={toggleBrush} // Chama toggleBrush ao clicar no botão
             style={{
+              width: "200px",
+              height: "40px",
               position: "absolute",
               top: 50, // Um pouco abaixo do primeiro botão
               right: 10,
               padding: "8px 12px",
-              backgroundColor: "#82c91e",
               border: "none",
-              borderRadius: "8px",
-              color: "#fff",
               cursor: "pointer",
             }}
           >
-            {brushEnabled ? "Desabilitar Brush" : "Habilitar Brush"}
+            {brushEnabled ? <img src="/cancelselect.png" alt="Cancelar Filtro" /> : <img src="/selectarea.png" alt="Ativar Filtro" />}
+          </button>
+
+          <button
+            onClick={clearBrush}
+            style={{ 
+              width: "200px",
+              height: "40px",
+              position: "absolute",  
+              top: 90,                
+              right: 10, 
+              padding: '6px 12px', 
+              border: 'none', 
+              cursor: 'pointer' }}
+          >
+            {brushPolygonGeo? <img src="/clearon.png" alt="climpar ativado" /> : <img src="/clearoff.png" alt="limbar escondido" />}
           </button>
 
           <div
             style={{
               position: "absolute",
-              top: 100, // abaixo dos botões
+              top: 150, // abaixo dos botões
               right: 10,
               padding: "4px",
               backgroundColor: "#ffffffdd",

@@ -50,7 +50,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Pesquise uma opção"
+        placeholder="Search some species"
         onFocus={() => setIsOpen(true)}
         style={{ marginBottom: '10px', padding: '5px', width: '100%' }}
       />
@@ -62,8 +62,8 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
             top: 'calc(100% + 5px)',
             left: 0,
             width: '300px',
-            backgroundColor: '#fff',
-            border: '1px solid #ddd',
+            backgroundColor: '#111',
+            border: '1px solid #333',
             borderRadius: '8px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             zIndex: 9999,
@@ -80,7 +80,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
                 checked={allSelected}
                 onChange={handleSelectAll}
               />{' '}
-              Selecionar tudo
+              Select All
             </label>
           </div>
 
@@ -101,7 +101,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
               ))}
             </ul>
           ) : (
-            <p style={{ fontStyle: 'italic', color: '#777' }}>Nenhuma opção encontrada</p>
+            <p style={{ fontStyle: 'italic', color: '#777' }}>No options found </p>
           )}
         </div>
       )}
