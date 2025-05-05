@@ -18,6 +18,10 @@ Para uma pesquisa com mais liberdade zoom e rotação do globo são excenciais
 ## Bolhas
 O heat-map possui algumas dificuldades quando queremos comparar numericamente dois dados, então substitui por um grafico de bolhas onde a quantidade de passaros é proporcional à área da bolha. Inicialmente tentem fazer de forma mais absoluta onde a bolha teria area correspondente a 2 vezes a quantidade de passaros, entretanto os circulos ficavam muito pequenos para vizualizações unicas, e se a escala fosse almentada as aves abundantes cobreriam todo mapa... então utilizei escalas com o ajuda do próprio d3.
 
+## pesquisa
+uma pesquisa simples para adicionar as espécies ao mapa e ao grafico, algo que já existia no original e eu quis manter.
+vale alertar que apesar de existir a opção de selecionar tudo ela deixa a vizualização incrivelmente pesada e não é recomendada.
+
 ## Cores
 Não consigo imaginar algo mais eficas para variaveis categóricas que forma e cor, como eu já estava usando circulos para espressar quantidade resolvi utilizar as cores para reprezentar as espécies. 
 
